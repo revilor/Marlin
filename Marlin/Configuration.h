@@ -1767,4 +1767,30 @@
 // With this option servos are powered only during movement, then turned off to prevent jitter.
 //#define DEACTIVATE_SERVOS_AFTER_MOVE
 
+
+/**
+ * Interchangeable hotend feature
+ */
+#define INTERCHANGEABLE_HOTEND
+
+#if ENABLED(INTERCHANGEABLE_HOTEND)
+	// where will hotend-specific configuration settings be stored
+	// only Mifare UL NFC tags are supported at the moment
+	#define HOTEND_CONFIG_STORE	mifare_ul
+
+	// define SPI CS pin for interchangeable hotends
+	#define INTERCHANGEABLE_HOTEND0_CS		49
+	//#define INTERCHANGEABLE_HOTEND1_CS		49
+	//#define INTERCHANGEABLE_HOTEND2_CS		49
+	//#define INTERCHANGEABLE_HOTEND3_CS		49
+
+	// define the thermistor tables required by the hotends, up to 5 are supported at the moment
+	#define INTERCHANGEABLE_HOTEND_THERM0	1	// 100K epcos
+	#define INTERCHANGEABLE_HOTEND_THERM1	5   // Semitec 104GT-2 (E3D)
+	#define INTERCHANGEABLE_HOTEND_THERM2	11	// 100k beta 3950 1% thermistor
+	#define INTERCHANGEABLE_HOTEND_THERM3	0
+	#define INTERCHANGEABLE_HOTEND_THERM4	0
+#endif
+
+
 #endif // CONFIGURATION_H

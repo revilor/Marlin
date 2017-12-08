@@ -150,6 +150,10 @@
   #include "feature/controllerfan.h"
 #endif
 
+#if ENABLED(INTERCHANGEABLE_HOTEND)
+	#include "feature/interchangeableHotend.h"
+#endif
+
 bool Running = true;
 
 /**
