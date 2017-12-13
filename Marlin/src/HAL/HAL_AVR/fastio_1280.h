@@ -41,9 +41,9 @@
 #define TXD         DIO1
 
 // SPI
-#define SCK         DIO52
+#define SCK         52 // DIO52
 #define MISO        DIO50
-#define MOSI        DIO51
+#define MOSI        51 // DIO51
 #define SS          DIO53
 
 // TWI (I2C)

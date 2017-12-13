@@ -1,4 +1,4 @@
-/**
+/*
  * Marlin 3D Printer Firmware
  * Copyright (C) 2016 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -94,7 +94,9 @@ void spiBegin (void) {
     SPCR = _BV(SPE) | _BV(MSTR) | (spiRate >> 1);
     SPSR = spiRate & 1 || spiRate == 6 ? 0 : _BV(SPI2X);
   }
-  //------------------------------------------------------------------------------
+
+ 
+    //------------------------------------------------------------------------------
   /** SPI receive a byte */
   uint8_t spiRec(void) {
     SPDR = 0XFF;

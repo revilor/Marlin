@@ -49,6 +49,7 @@
 #include "gcode/gcode.h"
 #include "gcode/parser.h"
 #include "gcode/queue.h"
+#include "HAL/HAL_SPI.h"
 
 #if HAS_BUZZER && DISABLED(LCD_USE_I2C_BUZZER)
   #include "libs/buzzer.h"
@@ -79,6 +80,7 @@
 #endif
 
 #if HAS_DIGIPOTSS
+  // TODO: HAL::SPI
   #include <SPI.h>
 #endif
 
@@ -151,7 +153,7 @@
 #endif
 
 #if ENABLED(INTERCHANGEABLE_HOTEND)
-	#include "feature/interchangeableHotend.h"
+	#include "feature/ich/interchangeableHotend.h"
 #endif
 
 bool Running = true;
@@ -698,6 +700,12 @@ void setup() {
 
   queue_setup();
 
+  // init the SPI bus
+  HAL::SPI::init();
+
+  #if ENABLED(INTERCHANGEABLE_HOTEND)
+    readICHTag(0);
+  #endif
   // Load data from EEPROM if available (or use defaults)
   // This also updates variables in the planner, elsewhere
   (void)settings.load();

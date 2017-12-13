@@ -111,7 +111,8 @@
  *
  * :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000]
  */
-#define BAUDRATE 250000
+//#define BAUDRATE 250000
+#define BAUDRATE 9600
 
 // Enable the Bluetooth serial interface on AT90USB devices
 //#define BLUETOOTH
@@ -1774,6 +1775,8 @@
 #define INTERCHANGEABLE_HOTEND
 
 #if ENABLED(INTERCHANGEABLE_HOTEND)
+
+  #define ICH_DEBUG
 	// where will hotend-specific configuration settings be stored
 	// only Mifare UL NFC tags are supported at the moment
 	#define HOTEND_CONFIG_STORE	mifare_ul
@@ -1790,6 +1793,8 @@
 	#define INTERCHANGEABLE_HOTEND_THERM2	11	// 100k beta 3950 1% thermistor
 	#define INTERCHANGEABLE_HOTEND_THERM3	0
 	#define INTERCHANGEABLE_HOTEND_THERM4	0
+
+	#define NO_MOVE_WITHOUT_HOTEND
 #endif
 
 

@@ -23,14 +23,14 @@
 #ifndef __ICH_HOTEND_H__
 #define __ICH_HOTEND_H__
 
-#include "../module/thermistor/thermistors.h"
+#include "../../module/thermistor/thermistors.h"
 
-#include "../inc/MarlinConfig.h"
-
+#include "../../inc/MarlinConfig.h"
 
   static void* ich_ttbl_map[5] = { (void*)ICH_0_TEMPTABLE, (void*)ICH_1_TEMPTABLE, (void*)ICH_2_TEMPTABLE, (void*)ICH_3_TEMPTABLE, (void*)ICH_4_TEMPTABLE };
   static uint8_t ich_ttbllen_map[5] = { ICH_0_TEMPTABLE_LEN, ICH_1_TEMPTABLE_LEN, ICH_2_TEMPTABLE_LEN, ICH_3_TEMPTABLE_LEN, ICH_4_TEMPTABLE_LEN };
   static uint8_t ich_ttblid_map[5] = { INTERCHANGEABLE_HOTEND_THERM0, INTERCHANGEABLE_HOTEND_THERM1, INTERCHANGEABLE_HOTEND_THERM2, INTERCHANGEABLE_HOTEND_THERM3, INTERCHANGEABLE_HOTEND_THERM4 };
 
-
+  void readICHTag(uint8_t hotend);
+  void writeICHTag(uint8_t hotend);
 #endif // __ICH_HOTEND_H__
