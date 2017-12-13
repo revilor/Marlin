@@ -700,11 +700,11 @@ void setup() {
 
   queue_setup();
 
-  // init the SPI bus
-  HAL::SPI::init();
 
   #if ENABLED(INTERCHANGEABLE_HOTEND)
-    readICHTag(0);
+  // init the SPI bus
+  spiBegin();
+  readICHTag(0);
   #endif
   // Load data from EEPROM if available (or use defaults)
   // This also updates variables in the planner, elsewhere

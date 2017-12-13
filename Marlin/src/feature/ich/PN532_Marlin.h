@@ -3,7 +3,7 @@
 #define __PN532_SPI_H__
 
 #include "../../inc/MarlinConfig.h"
-#include "../../HAL/HAL_SPI.h"
+#include "../../HAL/SPI.h"
 #include <PN532Interface.h> 
 
 
@@ -24,14 +24,19 @@ private:
     bool isReady();
     void writeFrame(const uint8_t *header, uint8_t hlen, const uint8_t *body = 0, uint8_t blen = 0);
     int8_t readAckFrame();
-    
+/*    
     inline void write(uint8_t data) {
-        HAL::SPI::transfer(data);
+        spiSend(data);
     };
 
     inline uint8_t read() {
-        return HAL::SPI::transfer(0x00);;
+        return spiRec();
     }; 
+    */
+
+    void write(uint8_t data);
+    uint8_t read();
+
 };
 
 #endif

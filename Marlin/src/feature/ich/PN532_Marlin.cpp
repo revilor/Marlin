@@ -2,7 +2,7 @@
 #include "../../Marlin.h"
 #include "PN532_Marlin.h"
 #include "../../core/serial.h"
-
+#include "../../HAL/SPI.h"
 
 #ifdef ICH_DEBUG
 #define DMSG(args...)       SERIAL_ECHO(args)
@@ -29,14 +29,16 @@ PN532_Marlin::PN532_Marlin(uint8_t ss)
 
 void PN532_Marlin::begin()
 {
-//    HAL::SPI::beginTransaction(_ss, 400000, SPI_LSBFIRST, SPI_MODE0);
+    spiBeginTransaction(2000000, SPI_LSBFIRST, SPI_DATAMODE_0);
 }
 
 void PN532_Marlin::wakeup()
 {
     DMSG("Wakeup\n");
-    HAL::SPI::beginTransaction(_ss, 2000000, SPI_LSBFIRST, SPI_MODE0);
-    DMSG("Wakeup2\n");
+    digitalWrite(_ss, LOW);
+    delay(2);
+    digitalWrite(_ss, HIGH);
+   DMSG("Wakeup2\n");
     
 }
 
@@ -45,9 +47,10 @@ void PN532_Marlin::wakeup()
 int8_t PN532_Marlin::writeCommand(const uint8_t *header, uint8_t hlen, const uint8_t *body, uint8_t blen)
 {
     command = header[0];
-    DMSG("writeCommand\n");
+    DMSG("writeCommand ");
     writeFrame(header, hlen, body, blen);
-    
+    DMSG("\n");
+
     uint8_t timeout = PN532_ACK_WAIT_TIME;
     while (!isReady()) {
         delay(1);
@@ -75,8 +78,8 @@ int16_t PN532_Marlin::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         }
     }
 
-//    digitalWrite(_ss, LOW);
-//    delay(1);
+    digitalWrite(_ss, LOW);
+    delay(1);
 
     int16_t result;
     do {
@@ -138,25 +141,25 @@ int16_t PN532_Marlin::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         result = length;
     } while (0);
 
-//    digitalWrite(_ss, HIGH);
+    digitalWrite(_ss, HIGH);
 
     return result;
 }
 
 bool PN532_Marlin::isReady()
 {
-//    digitalWrite(_ss, LOW);
+    digitalWrite(_ss, LOW);
 
     write(STATUS_READ);
     uint8_t status = read() & 1;
-//    digitalWrite(_ss, HIGH);
+    digitalWrite(_ss, HIGH);
     return status;
 }
 
 void PN532_Marlin::writeFrame(const uint8_t *header, uint8_t hlen, const uint8_t *body, uint8_t blen)
 {
-//    digitalWrite(_ss, LOW);
-//    delay(2);               // wake up PN532
+    digitalWrite(_ss, LOW);
+    delay(2);               // wake up PN532
 
     write(DATA_WRITE);
     write(PN532_PREAMBLE);
@@ -189,7 +192,7 @@ void PN532_Marlin::writeFrame(const uint8_t *header, uint8_t hlen, const uint8_t
     write(checksum);
     write(PN532_POSTAMBLE);
 
-//    digitalWrite(_ss, HIGH);
+    digitalWrite(_ss, HIGH);
 
     DMSG('\n');
 }
@@ -214,3 +217,16 @@ int8_t PN532_Marlin::readAckFrame()
 
     return memcmp(ackBuf, PN532_ACK, sizeof(PN532_ACK));
 }
+
+
+void PN532_Marlin::write(uint8_t data) {
+    DMSG_HEX(data);
+    spiSend(data);
+};
+
+uint8_t PN532_Marlin::read() {
+    uint8_t read = spiRec();
+    DMSG_HEX(read);
+    return read;
+//    return spiRec();
+}; 

@@ -55,6 +55,13 @@
 #define SPI_SPEED_5         5   // Set SCK rate to 1/32 of max rate
 #define SPI_SPEED_6         6   // Set SCK rate to 1/64 of max rate
 
+#define SPI_LSBFIRST 0
+#define SPI_MSBFIRST 1
+
+#define SPI_DATAMODE_0 0x00
+#define SPI_DATAMODE_1 0x04
+#define SPI_DATAMODE_2 0x08
+#define SPI_DATAMODE_3 0x0C
 
 // Standard SPI functions
 /** Initialise SPI bus */
@@ -69,5 +76,9 @@ uint8_t spiRec(void);
 void spiRead(uint8_t* buf, uint16_t nbyte);
 /** Write token and then write from 512 byte buffer to SPI (for SD card) */
 void spiSendBlock(uint8_t token, const uint8_t* buf);
+/** begin spi transaction */
+bool spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode);
+/** end spi transaction */
+void spiEndTransaction();
 
 #endif // _SPI_H_

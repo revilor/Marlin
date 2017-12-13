@@ -26,7 +26,7 @@
 #include "../../core/serial.h"
 #include "PN532_Marlin.h"
 #include <PN532.h>
-
+#include "../../HAL/SPI.h"
 
   // TODO: handle multiple hotends
   //SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
@@ -52,6 +52,8 @@ void readICHTag(uint8_t hotend) {
       // 'uid' will be populated with the UID, and uidLength will indicate
       // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
     success = nfc0.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
+
+    SERIAL_ECHOLN("NFC target ID");
     
     SERIAL_ECHOLN(success);
 
@@ -88,6 +90,6 @@ void readICHTag(uint8_t hotend) {
         SERIAL_ECHOLN("Timed out waiting for a card");
     }
 
-    HAL::SPI::endTransaction();
+    spiEndTransaction();
 }
       
