@@ -19,16 +19,57 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include "../../Marlin.h"
 #include "../../inc/MarlinConfig.h"
+#include "../../HAL/persistent_store_api.h"
+
 #include <stdint.h>
 #include "interchangeableHotend.h"
 #include "../../core/serial.h"
+#include "../../core/utility.h"
 //#include "PN532_Marlin.h"
 #include <SPI.h>
 #include "../../libs/PN532_SPI/PN532_SPI.h"
 #include "../../libs/PN532/PN532.h"
+#include "../../module/temperature.h"
 
 //#include "../../HAL/SPI.h"
+
+#if HAS_BED_PROBE
+  #include "../module/probe.h"
+#endif
+
+#define NCF_EEPROM_VERSION 0x01
+
+/**
+ * V1 Mifare UL EEPROM Layout:
+ *  
+ *  Page + Offset in page
+ *  4 + 0  Version                                  (uint8 _t)
+ *  4 + 1  EEPROM CRC16                             (uint16_t)
+ *  4 + 3  Thermistor ID                            (uint8_t)
+ * 
+ *  5 + 0  Label                                    (char x 12)
+ *  6 + 0
+ *  7 + 0
+ * 
+ *  8 + 0  Nozzle diameter                          (float)
+ * 
+ * HAS_BED_PROBE:                                   4 bytes
+ *  9 + 0  M851      zprobe_zoffset                 (float)
+ * 
+ * DELTA:                                           4 bytes
+ *  10 + 0  M666 H    delta_height                   (float)
+ *
+ * PIDTEMP:                                         16 bytes
+ *  11 + 0  M301 En PIDC  Kp                         (float)
+ *  12 + 0  M301 En PIDC  Ki                         (float)
+ *  13 + 0  M301 En PIDC Kd                         (float)
+ *  14 + 0  M301 En PIDC  Kc                        (float)
+ * 
+ * 
+ */
+
 
   // TODO: handle multiple hotends
   //SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
@@ -92,9 +133,10 @@ void readICHTag(uint8_t hotend) {
           SERIAL_ECHOLN("Seems to be a Mifare Ultralight tag (7 byte UID)");
     
           // Try to read the first general-purpose user page (#4)
-          SERIAL_ECHOLN("Reading page 4");
+          SERIAL_ECHOLN("Reading pages");
           uint8_t data[32];
-          success = nfc0.mifareultralight_ReadPage (4, data);
+          for (uint8_t i = 4; i < 16; i++) {
+          success = nfc0.mifareultralight_ReadPage (i, data);
           if (success) {
             // Data seems to have been read ... spit it out
             nfc0.PrintHexChar(data, 4);
@@ -102,6 +144,7 @@ void readICHTag(uint8_t hotend) {
           } else {
             SERIAL_ECHOLN("Ooops ... unable to read the requested page!?");
           }
+        }
         }
     
         SERIAL_ECHOLN("");
@@ -114,3 +157,59 @@ void readICHTag(uint8_t hotend) {
 //    spiEndTransaction();
 }
       
+
+
+void writePage(uint8_t page, uint8_t *value, uint16_t *crc) {
+  uint8_t size = 4; // 4 bytes per page
+  uint8_t * val = value;
+
+  while (size--) {
+    uint8_t v = *val;
+    crc16(crc, &v, 1);
+    val++;
+  };
+
+  nfc0.mifareultralight_WritePage(page, value);
+}
+
+
+
+void writeICHTag(uint8_t hotend) {
+  
+  uint16_t working_crc = 0;
+  // TODO where to get thermistor setting?
+  uint8_t page4[4] = {NCF_EEPROM_VERSION, 0, 0, ich_ttblid_map[hotend]};
+
+  writePage(5, (uint8_t*)&ich_label, &working_crc);
+  writePage(6, ((uint8_t*)&ich_label) + 4, &working_crc);
+  writePage(7, ((uint8_t*)&ich_label) + 8, &working_crc);
+  writePage(8, (uint8_t*)&ich_nozzle, &working_crc);
+
+  #if !HAS_BED_PROBE
+    const float zprobe_zoffset = 0;
+  #endif
+
+  writePage(9, (uint8_t*)&zprobe_zoffset, &working_crc);
+
+  #if ENABLED(DELTA)
+    writePage(10, &delta_height, working_crc);
+  #endif
+
+  writePage(11, (uint8_t*)&PID_PARAM(Kp, hotend), &working_crc);
+  writePage(12, (uint8_t*)&PID_PARAM(Ki, hotend), &working_crc);
+  writePage(13, (uint8_t*)&PID_PARAM(Kd, hotend), &working_crc);
+  #if ENABLED(PID_EXTRUSION_SCALING)
+    writePage(14, (uint8_t*)&PID_PARAM(Kc, hotend), working_crc);
+  #else
+    const float dummy = 1.0f; // 1.0 = default kc
+    writePage(14, (uint8_t*)&dummy, &working_crc);
+  #endif
+
+  crc16(&working_crc, (uint8_t*)&ich_ttblid_map[hotend], 1);
+  page4[1] =  (uint8_t)((working_crc >> 8) & 0XFF);
+  page4[2] = (uint8_t)((working_crc & 0XFF));
+
+  writePage(4, (uint8_t*)&page4, &working_crc);
+}
+
+

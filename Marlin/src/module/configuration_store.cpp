@@ -212,6 +212,10 @@ MarlinSettings settings;
   #include "../feature/fwretract.h"
 #endif
 
+#if ENABLED(INTERCHANGEABLE_HOTEND)
+  #include "../feature/ich/interchangeableHotend.h"
+#endif
+
 #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
   float new_z_fade_height;
 #endif
@@ -688,6 +692,11 @@ void MarlinSettings::postprocess() {
     #if ENABLED(UBL_SAVE_ACTIVE_ON_M500)
       if (ubl.storage_slot >= 0)
         store_mesh(ubl.storage_slot);
+    #endif
+
+    #if ENABLED(INTERCHANGEABLE_HOTEND)
+    // TODO multiple hotends
+      writeICHTag(0);
     #endif
 
     return !eeprom_error;

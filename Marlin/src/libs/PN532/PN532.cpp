@@ -72,11 +72,12 @@ void PN532::PrintHexChar(const uint8_t *data, const uint32_t numBytes)
 {
 #ifdef ARDUINO
     for (uint8_t i = 0; i < numBytes; i++) {
-        if (data[i] < 0x10) {
+/*        if (data[i] < 0x10) {
             DMSG(" 0");
         } else {
             DMSG(' ');
         }
+        */
         DMSG_HEX(data[i]);
     }
     DMSG("    ");
