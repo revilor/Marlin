@@ -24,7 +24,6 @@
 #define __ICH_HOTEND_H__
 
 #include "../../module/thermistor/thermistors.h"
-
 #include "../../inc/MarlinConfig.h"
 
   static void* ich_ttbl_map[5] = { (void*)ICH_0_TEMPTABLE, (void*)ICH_1_TEMPTABLE, (void*)ICH_2_TEMPTABLE, (void*)ICH_3_TEMPTABLE, (void*)ICH_4_TEMPTABLE };

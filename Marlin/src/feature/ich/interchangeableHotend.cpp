@@ -19,27 +19,48 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "../../Marlin.h"
 #include "../../inc/MarlinConfig.h"
 #include <stdint.h>
 #include "interchangeableHotend.h"
 #include "../../core/serial.h"
-#include "PN532_Marlin.h"
-#include <PN532.h>
-#include "../../HAL/SPI.h"
+//#include "PN532_Marlin.h"
+#include <SPI.h>
+#include "../../libs/PN532_SPI/PN532_SPI.h"
+#include "../../libs/PN532/PN532.h"
+
+//#include "../../HAL/SPI.h"
 
   // TODO: handle multiple hotends
   //SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
   
-  PN532_Marlin pn532_marlin0(INTERCHANGEABLE_HOTEND0_CS);
+  PN532_SPI pn532_marlin0(SPI, INTERCHANGEABLE_HOTEND0_CS);
+  //PN532_Marlin pn532_marlin0(INTERCHANGEABLE_HOTEND0_CS);
   PN532 nfc0(pn532_marlin0);
 
 
 void readICHTag(uint8_t hotend) {
     // TODO: support multiple hotends
     nfc0.begin();
+
+    uint32_t versiondata = nfc0.getFirmwareVersion();
+    if (! versiondata) {
+      SERIAL_ECHOLN("Didn't find PN53x board");
+      return;
+    }
+  
+    // Got ok data, print it out!
+    SERIAL_ECHO("Found chip PN5"); SERIAL_PROTOCOL_F((versiondata>>24) & 0xFF, HEX);
+    SERIAL_ECHO("Firmware ver. "); SERIAL_PROTOCOL_F((versiondata>>16) & 0xFF, DEC);
+    SERIAL_ECHO('.'); SERIAL_PROTOCOL_F((versiondata>>8) & 0xFF, DEC);
+    SERIAL_ECHO("\n");
+  
+    // Set the max number of retry attempts to read from a card
+    // This prevents us from waiting forever for a card, which is
+    // the default behaviour of the PN532.
+     
     nfc0.setPassiveActivationRetries(0xFF);
     
+
     // configure board to read RFID tags
     nfc0.SAMConfig();
 
@@ -90,6 +111,6 @@ void readICHTag(uint8_t hotend) {
         SERIAL_ECHOLN("Timed out waiting for a card");
     }
 
-    spiEndTransaction();
+//    spiEndTransaction();
 }
       

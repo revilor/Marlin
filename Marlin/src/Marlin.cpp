@@ -701,11 +701,7 @@ void setup() {
   queue_setup();
 
 
-  #if ENABLED(INTERCHANGEABLE_HOTEND)
-  // init the SPI bus
-  spiBegin();
-  readICHTag(0);
-  #endif
+  
   // Load data from EEPROM if available (or use defaults)
   // This also updates variables in the planner, elsewhere
   (void)settings.load();
@@ -848,6 +844,13 @@ void setup() {
   #if ENABLED(PARKING_EXTRUDER)
     pe_magnet_init();
   #endif
+
+  #if ENABLED(INTERCHANGEABLE_HOTEND)
+  // init the SPI bus
+  //  spiBegin();
+  readICHTag(0);
+  #endif
+
 }
 
 /**
@@ -871,4 +874,5 @@ void loop() {
 
   endstops.report_state();
   idle();
+
 }
