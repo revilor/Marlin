@@ -1126,6 +1126,13 @@ void MarlinSettings::postprocess() {
         for (uint8_t q = 3; q--;) EEPROM_READ(dummy);
       #endif
 
+
+      #if ENABLED(INTERCHANGEABLE_HOTEND)
+      // TODO multiple hotends
+        readICHTag(0);
+      #endif
+    
+        
       if (working_crc == stored_crc) {
         postprocess();
         #if ENABLED(EEPROM_CHITCHAT)
@@ -1185,11 +1192,12 @@ void MarlinSettings::postprocess() {
         }
       #endif
     }
-
+    
     #if ENABLED(EEPROM_CHITCHAT) && DISABLED(DISABLE_M503)
       report();
     #endif
     EEPROM_FINISH();
+
 
     return !eeprom_error;
   }

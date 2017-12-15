@@ -39,7 +39,7 @@
   #include "../module/probe.h"
 #endif
 
-#define NCF_EEPROM_VERSION 0x01
+#define NFC_EEPROM_VERSION 0x01
 
 /**
  * V1 Mifare UL EEPROM Layout:
@@ -79,33 +79,9 @@
   PN532 nfc0(pn532_marlin0);
 
 
-void readICHTag(uint8_t hotend) {
-    // TODO: support multiple hotends
-    nfc0.begin();
 
-    uint32_t versiondata = nfc0.getFirmwareVersion();
-    if (! versiondata) {
-      SERIAL_ECHOLN("Didn't find PN53x board");
-      return;
-    }
+  void dumpICHTag(uint8_t hotend) {
   
-    // Got ok data, print it out!
-    SERIAL_ECHO("Found chip PN5"); SERIAL_PROTOCOL_F((versiondata>>24) & 0xFF, HEX);
-    SERIAL_ECHO("Firmware ver. "); SERIAL_PROTOCOL_F((versiondata>>16) & 0xFF, DEC);
-    SERIAL_ECHO('.'); SERIAL_PROTOCOL_F((versiondata>>8) & 0xFF, DEC);
-    SERIAL_ECHO("\n");
-  
-    // Set the max number of retry attempts to read from a card
-    // This prevents us from waiting forever for a card, which is
-    // the default behaviour of the PN532.
-     
-    nfc0.setPassiveActivationRetries(0xFF);
-    
-
-    // configure board to read RFID tags
-    nfc0.SAMConfig();
-
-
     bool success;
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
     uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
@@ -114,11 +90,11 @@ void readICHTag(uint8_t hotend) {
       // 'uid' will be populated with the UID, and uidLength will indicate
       // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
     success = nfc0.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
-
+  
     SERIAL_ECHOLN("NFC target ID");
     
     SERIAL_ECHOLN(success);
-
+  
     if (success) {
         SERIAL_ECHOLN("Found a card!");
         SERIAL_ECHO("UID Length: ");SERIAL_PROTOCOL_F(uidLength, DEC);SERIAL_ECHO(" bytes");
@@ -153,32 +129,153 @@ void readICHTag(uint8_t hotend) {
         // PN532 probably timed out waiting for a card
         SERIAL_ECHOLN("Timed out waiting for a card");
     }
+  
+  //    spiEndTransaction();
+  }
+  
 
-//    spiEndTransaction();
-}
+
+  void readPage(uint8_t page, uint8_t *value, uint16_t *crc) {
+    uint8_t size = 4; // 4 bytes per page
+    uint8_t * val = value;
+    uint8_t data[32];
+    
+    nfc0.mifareultralight_ReadPage(page, data);
+    
+    for (uint8_t i=0; i < size; i++) {
+      crc16(crc, &data[i], 1);
+      *val = data[i];
+      val++;
+    };
+  
+
+  }
+  
+  void writePage(uint8_t page, uint8_t *value, uint16_t *crc) {
+    uint8_t size = 4; // 4 bytes per page
+    uint8_t * val = value;
+  
+    while (size--) {
+      uint8_t v = *val;
+      crc16(crc, &v, 1);
+      val++;
+    };
+  
+    nfc0.mifareultralight_WritePage(page, value);
+  }
+  
+
+void readICHTag(uint8_t hotend) {
+
+
+    nfc0.begin();
+    nfc0.setPassiveActivationRetries(0xFF);
+    nfc0.SAMConfig();
+  
+  
+    bool success;
+    uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+    uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
       
+    success = nfc0.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
+  
+    if (! success) {
+      // no tag present
+      // TODO: should this cause an error?
+      SERIAL_ECHOLN("No NFC tag");
+      return;
+    }
+
+    dumpICHTag(hotend);
+    
 
 
-void writePage(uint8_t page, uint8_t *value, uint16_t *crc) {
-  uint8_t size = 4; // 4 bytes per page
-  uint8_t * val = value;
+    SERIAL_ECHOLN(ich_label);
+    SERIAL_ECHOLN(ich_nozzle);
+    
+    uint16_t working_crc = 0;
+    uint16_t stored_crc = 0;
+    uint8_t page4[4];
+    
+    readPage(4, (uint8_t*)&page4, &working_crc);
+    working_crc = 0;
 
-  while (size--) {
-    uint8_t v = *val;
-    crc16(crc, &v, 1);
-    val++;
-  };
+    uint8_t version = page4[0];
+    stored_crc |= page4[1] << 8;
+    stored_crc |= page4[2];
+    uint8_t thermistorIndex = page4[3];
 
-  nfc0.mifareultralight_WritePage(page, value);
-}
+    // TODO where to store thermistor setting?
 
+    if (version != NFC_EEPROM_VERSION) {
+        SERIAL_ECHO("NFC storage version mismatch: ");
+        SERIAL_ECHO(version);
+        SERIAL_ECHO(" != ");
+        SERIAL_ECHOLN(NFC_EEPROM_VERSION);
+//        return;
+    }
+  
+    readPage(5, (uint8_t*)&ich_label, &working_crc);
+    readPage(6, ((uint8_t*)&ich_label) + 4, &working_crc);
+    readPage(7, ((uint8_t*)&ich_label) + 8, &working_crc);
+    readPage(8, (uint8_t*)&ich_nozzle, &working_crc);
+  
+    #if !HAS_BED_PROBE
+      const float zprobe_zoffset = 0;
+    #endif
+  
+    readPage(9, (uint8_t*)&zprobe_zoffset, &working_crc);
+  
+    #if ENABLED(DELTA)
+    readPage(10, &delta_height, working_crc);
+    #endif
+  
+    readPage(11, (uint8_t*)&PID_PARAM(Kp, hotend), &working_crc);
+    readPage(12, (uint8_t*)&PID_PARAM(Ki, hotend), &working_crc);
+    readPage(13, (uint8_t*)&PID_PARAM(Kd, hotend), &working_crc);
+    #if ENABLED(PID_EXTRUSION_SCALING)
+    readPage(14, (uint8_t*)&PID_PARAM(Kc, hotend), working_crc);
+    #else
+      const float dummy = 1.0f; // 1.0 = default kc
+      readPage(14, (uint8_t*)&dummy, &working_crc);
+    #endif
+  
+    crc16(&working_crc, (uint8_t*)&thermistorIndex, 1);
+    
+    if (working_crc != stored_crc) {
+      SERIAL_ECHO("NFC storage CRC mismatch: ");
+      SERIAL_ECHO(working_crc);
+      SERIAL_ECHO(" != ");
+      SERIAL_ECHOLN(stored_crc);
+    }
 
+    SERIAL_ECHOLN(ich_label);
+    SERIAL_ECHOLN(ich_nozzle);    
+  }
+  
 
 void writeICHTag(uint8_t hotend) {
-  
+  nfc0.begin();
+  nfc0.setPassiveActivationRetries(0xFF);
+  nfc0.SAMConfig();
+
+
+  bool success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+    
+  success = nfc0.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
+
+  if (! success) {
+    // no tag present
+    // TODO: should this cause an error?
+    SERIAL_ECHOLN("No NFC tag");    
+    return;
+  }
+
   uint16_t working_crc = 0;
   // TODO where to get thermistor setting?
-  uint8_t page4[4] = {NCF_EEPROM_VERSION, 0, 0, ich_ttblid_map[hotend]};
+  uint8_t page4[4] = {NFC_EEPROM_VERSION, 0, 0, ich_ttblid_map[hotend]};
 
   writePage(5, (uint8_t*)&ich_label, &working_crc);
   writePage(6, ((uint8_t*)&ich_label) + 4, &working_crc);
@@ -211,5 +308,6 @@ void writeICHTag(uint8_t hotend) {
 
   writePage(4, (uint8_t*)&page4, &working_crc);
 }
+
 
 

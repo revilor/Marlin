@@ -844,13 +844,6 @@ void setup() {
   #if ENABLED(PARKING_EXTRUDER)
     pe_magnet_init();
   #endif
-
-  #if ENABLED(INTERCHANGEABLE_HOTEND)
-  // init the SPI bus
-  //  spiBegin();
-  readICHTag(0);
-  #endif
-
 }
 
 /**
