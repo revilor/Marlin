@@ -2036,6 +2036,19 @@ void MarlinSettings::reset() {
       SERIAL_ECHOPAIR(" E", stepper.motor_current_setting[2]);
       SERIAL_EOL();
     #endif
+
+
+    #if ENABLED(INTERCHANGEABLE_HOTEND)
+    if (!forReplay) {
+      CONFIG_ECHO_START;
+      SERIAL_ECHOLN(" Hotend:");
+    }
+    CONFIG_ECHO_START;
+    SERIAL_ECHOPAIR(" M510 L", ich_label);
+    SERIAL_ECHOPAIR(" N", ich_nozzle);
+    SERIAL_EOL();
+#endif
+
   }
 
 #endif // !DISABLE_M503

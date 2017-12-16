@@ -26,16 +26,17 @@
 #include "../../module/thermistor/thermistors.h"
 #include "../../inc/MarlinConfig.h"
 
-  static void* ich_ttbl_map[5] = { (void*)ICH_0_TEMPTABLE, (void*)ICH_1_TEMPTABLE, (void*)ICH_2_TEMPTABLE, (void*)ICH_3_TEMPTABLE, (void*)ICH_4_TEMPTABLE };
-  static uint8_t ich_ttbllen_map[5] = { ICH_0_TEMPTABLE_LEN, ICH_1_TEMPTABLE_LEN, ICH_2_TEMPTABLE_LEN, ICH_3_TEMPTABLE_LEN, ICH_4_TEMPTABLE_LEN };
-  static uint8_t ich_ttblid_map[5] = { INTERCHANGEABLE_HOTEND_THERM0, INTERCHANGEABLE_HOTEND_THERM1, INTERCHANGEABLE_HOTEND_THERM2, INTERCHANGEABLE_HOTEND_THERM3, INTERCHANGEABLE_HOTEND_THERM4 };
+  extern void* ich_ttbl_map[];
+  extern uint8_t ich_ttbllen_map[];
+  extern uint8_t ich_ttblid_map[];
 
-  static char ich_label[13] = "            "; // "E3D 0.5mm123";
-  static float ich_nozzle = 0.5f;
+  extern char ich_label[];
+  extern float ich_nozzle;
 //  static char ich_label[13] = "E3D 0.5mm123";
 //  static float ich_nozzle = 0.4f;
 
-
-  void readICHTag(uint8_t hotend);
-  void writeICHTag(uint8_t hotend);
+  #if ENABLED(EEPROM_SETTINGS)
+    void readICHTag(uint8_t hotend);
+    void writeICHTag(uint8_t hotend);
+  #endif
 #endif // __ICH_HOTEND_H__

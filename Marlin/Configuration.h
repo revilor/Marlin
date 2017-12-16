@@ -111,7 +111,6 @@
  *
  * :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000]
  */
-//#define BAUDRATE 250000
 #define BAUDRATE 9600
 
 // Enable the Bluetooth serial interface on AT90USB devices
@@ -1775,14 +1774,12 @@
 #define INTERCHANGEABLE_HOTEND
 
 #if ENABLED(INTERCHANGEABLE_HOTEND)
-
-  #define ICH_DEBUG
 	// where will hotend-specific configuration settings be stored
 	// only Mifare UL NFC tags are supported at the moment
 	#define HOTEND_CONFIG_STORE	mifare_ul
 
 	// define SPI CS pin for interchangeable hotends
-	#define INTERCHANGEABLE_HOTEND0_CS		53
+	#define INTERCHANGEABLE_HOTEND0_CS		49
 	//#define INTERCHANGEABLE_HOTEND1_CS		49
 	//#define INTERCHANGEABLE_HOTEND2_CS		49
 	//#define INTERCHANGEABLE_HOTEND3_CS		49
@@ -1792,9 +1789,10 @@
 	#define INTERCHANGEABLE_HOTEND_THERM1	5   // Semitec 104GT-2 (E3D)
 	#define INTERCHANGEABLE_HOTEND_THERM2	11	// 100k beta 3950 1% thermistor
 	#define INTERCHANGEABLE_HOTEND_THERM3	0
-	#define INTERCHANGEABLE_HOTEND_THERM4	0
-
-	#define NO_MOVE_WITHOUT_HOTEND
+  #define INTERCHANGEABLE_HOTEND_THERM4	0
+  
+  #define DEBUG_GCODE_PARSER
+  #define DEBUG_ICH
 #endif
 
 

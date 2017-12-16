@@ -21,12 +21,12 @@
  */
 #include "../../Marlin.h"
 #include "../../inc/MarlinConfig.h"
+#include "../../core/utility.h"
 #include "../../HAL/persistent_store_api.h"
 
 #include <stdint.h>
 #include "interchangeableHotend.h"
 #include "../../core/serial.h"
-#include "../../core/utility.h"
 //#include "PN532_Marlin.h"
 #include <SPI.h>
 #include "../../libs/PN532_SPI/PN532_SPI.h"
@@ -70,6 +70,15 @@
  * 
  */
 
+#if ENABLED(EEPROM_SETTINGS)
+
+
+void* ich_ttbl_map[5] = { (void*)ICH_0_TEMPTABLE, (void*)ICH_1_TEMPTABLE, (void*)ICH_2_TEMPTABLE, (void*)ICH_3_TEMPTABLE, (void*)ICH_4_TEMPTABLE };
+uint8_t ich_ttbllen_map[5] = { ICH_0_TEMPTABLE_LEN, ICH_1_TEMPTABLE_LEN, ICH_2_TEMPTABLE_LEN, ICH_3_TEMPTABLE_LEN, ICH_4_TEMPTABLE_LEN };
+uint8_t ich_ttblid_map[5] = { INTERCHANGEABLE_HOTEND_THERM0, INTERCHANGEABLE_HOTEND_THERM1, INTERCHANGEABLE_HOTEND_THERM2, INTERCHANGEABLE_HOTEND_THERM3, INTERCHANGEABLE_HOTEND_THERM4 };
+
+char ich_label[13] = "            "; // "E3D 0.5mm123";
+float ich_nozzle = 0.5f;
 
   // TODO: handle multiple hotends
   //SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
@@ -143,8 +152,8 @@
     nfc0.mifareultralight_ReadPage(page, data);
     
     for (uint8_t i=0; i < size; i++) {
-      crc16(crc, &data[i], 1);
       *val = data[i];
+      crc16(crc, val, 1);
       val++;
     };
   
@@ -186,12 +195,9 @@ void readICHTag(uint8_t hotend) {
       return;
     }
 
-    dumpICHTag(hotend);
-    
-
-
-    SERIAL_ECHOLN(ich_label);
-    SERIAL_ECHOLN(ich_nozzle);
+    #if ENABLED(DEBUG_ICH)
+      dumpICHTag(hotend);
+    #endif
     
     uint16_t working_crc = 0;
     uint16_t stored_crc = 0;
@@ -248,9 +254,6 @@ void readICHTag(uint8_t hotend) {
       SERIAL_ECHO(" != ");
       SERIAL_ECHOLN(stored_crc);
     }
-
-    SERIAL_ECHOLN(ich_label);
-    SERIAL_ECHOLN(ich_nozzle);    
   }
   
 
@@ -310,4 +313,4 @@ void writeICHTag(uint8_t hotend) {
 }
 
 
-
+#endif
