@@ -1779,7 +1779,7 @@
 	#define HOTEND_CONFIG_STORE	mifare_ul
 
 	// define SPI CS pin for interchangeable hotends
-	#define INTERCHANGEABLE_HOTEND0_CS		49
+	#define INTERCHANGEABLE_HOTEND0_CS 49
 	//#define INTERCHANGEABLE_HOTEND1_CS		49
 	//#define INTERCHANGEABLE_HOTEND2_CS		49
 	//#define INTERCHANGEABLE_HOTEND3_CS		49

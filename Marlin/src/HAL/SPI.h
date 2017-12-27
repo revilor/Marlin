@@ -76,9 +76,7 @@ uint8_t spiRec(void);
 void spiRead(uint8_t* buf, uint16_t nbyte);
 /** Write token and then write from 512 byte buffer to SPI (for SD card) */
 void spiSendBlock(uint8_t token, const uint8_t* buf);
-/** begin spi transaction */
-bool spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode);
-/** end spi transaction */
-void spiEndTransaction();
+/** Begin SPI transaction, set clock, bit order, data mode */
+void spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode);
 
 #endif // _SPI_H_

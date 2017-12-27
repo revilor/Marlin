@@ -254,6 +254,9 @@
 #define MSG_T_MAXTEMP                       "MAXTEMP triggered"
 #define MSG_T_MINTEMP                       "MINTEMP triggered"
 
+// M510
+#define MSG_WRONG_NOZZLE                    "Nozzle mismatch. Required: "
+
 // Debug
 #define MSG_DEBUG_PREFIX                    "DEBUG:"
 #define MSG_DEBUG_OFF                       "off"

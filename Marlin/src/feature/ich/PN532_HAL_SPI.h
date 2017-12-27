@@ -7,9 +7,9 @@
 #include <PN532Interface.h> 
 
 
-class PN532_Marlin : public PN532Interface {
+class PN532_HAL_SPI : public PN532Interface {
 public:
-	PN532_Marlin(uint8_t ss);
+	PN532_HAL_SPI(uint8_t ss);
     
     void begin();
     void wakeup();

@@ -19,21 +19,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "../../Marlin.h"
 #include "../../inc/MarlinConfig.h"
+#include "../../Marlin.h"
 #include "../../core/utility.h"
 #include "../../HAL/persistent_store_api.h"
-
 #include <stdint.h>
 #include "interchangeableHotend.h"
 #include "../../core/serial.h"
-//#include "PN532_Marlin.h"
+#include "PN532_HAL_SPI.h"
 #include <SPI.h>
-#include "../../libs/PN532_SPI/PN532_SPI.h"
+// #include "../../libs/PN532_SPI/PN532_SPI.h"
 #include "../../libs/PN532/PN532.h"
 #include "../../module/temperature.h"
 
-//#include "../../HAL/SPI.h"
+#include "../../HAL/SPI.h"
 
 #if HAS_BED_PROBE
   #include "../module/probe.h"
@@ -70,31 +69,35 @@
  * 
  */
 
-#if ENABLED(EEPROM_SETTINGS)
+#if ENABLED(INTERCHANGEABLE_HOTEND)
+
+  #if ENABLED(EEPROM_SETTINGS)
 
 
 void* ich_ttbl_map[5] = { (void*)ICH_0_TEMPTABLE, (void*)ICH_1_TEMPTABLE, (void*)ICH_2_TEMPTABLE, (void*)ICH_3_TEMPTABLE, (void*)ICH_4_TEMPTABLE };
 uint8_t ich_ttbllen_map[5] = { ICH_0_TEMPTABLE_LEN, ICH_1_TEMPTABLE_LEN, ICH_2_TEMPTABLE_LEN, ICH_3_TEMPTABLE_LEN, ICH_4_TEMPTABLE_LEN };
 uint8_t ich_ttblid_map[5] = { INTERCHANGEABLE_HOTEND_THERM0, INTERCHANGEABLE_HOTEND_THERM1, INTERCHANGEABLE_HOTEND_THERM2, INTERCHANGEABLE_HOTEND_THERM3, INTERCHANGEABLE_HOTEND_THERM4 };
 
-char ich_label[13] = "            "; // "E3D 0.5mm123";
+char ich_label[13] = "            "; 
 float ich_nozzle = 0.5f;
 
-  // TODO: handle multiple hotends
-  //SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
   
-  PN532_SPI pn532_marlin0(SPI, INTERCHANGEABLE_HOTEND0_CS);
-  //PN532_Marlin pn532_marlin0(INTERCHANGEABLE_HOTEND0_CS);
+  //PN532_SPI pn532_marlin0(SPI, INTERCHANGEABLE_HOTEND0_CS);
+  PN532_HAL_SPI pn532_marlin0(INTERCHANGEABLE_HOTEND0_CS);
   PN532 nfc0(pn532_marlin0);
 
 
 
   void dumpICHTag(uint8_t hotend) {
   
+      // TODO: handle multiple hotends?
+  SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
+  
     bool success;
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
     uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
-    
+
+     
       // Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
       // 'uid' will be populated with the UID, and uidLength will indicate
       // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
@@ -176,11 +179,13 @@ float ich_nozzle = 0.5f;
 
 void readICHTag(uint8_t hotend) {
 
-
+  // TODO: handle multiple hotends?
+  SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
+  
     nfc0.begin();
     nfc0.setPassiveActivationRetries(0xFF);
     nfc0.SAMConfig();
-  
+    
   
     bool success;
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -258,10 +263,14 @@ void readICHTag(uint8_t hotend) {
   
 
 void writeICHTag(uint8_t hotend) {
+  // TODO: handle multiple hotends?
+  SET_OUTPUT(INTERCHANGEABLE_HOTEND0_CS);
+
   nfc0.begin();
   nfc0.setPassiveActivationRetries(0xFF);
   nfc0.SAMConfig();
 
+  
 
   bool success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -313,4 +322,5 @@ void writeICHTag(uint8_t hotend) {
 }
 
 
+  #endif
 #endif

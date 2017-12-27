@@ -144,7 +144,7 @@ void spiBegin (void) {
 
 
   /** begin spi transaction */
-  bool spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
+  void spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
   // Clock settings are defined as follows. Note that this shows SPI2X
     // inverted, so the bits form increasing numbers. Also note that
     // fosc/64 appears twice
@@ -195,23 +195,14 @@ void spiBegin (void) {
     
         // Compensate for the duplicate fosc/64
         if (clockDiv == 6)
-        clockDiv = 7;
+          clockDiv = 7;
     
-        SERIAL_ECHO("spiBeginTransaction");
-        SERIAL_ECHO_F(clockDiv, HEX)        ;
-        SERIAL_ECHO("spiBeginTransaction");
         // Invert the SPI2X bit
         clockDiv ^= 0x1;
     
-        // Pack into the SPISettings class
         SPCR = _BV(SPE) | _BV(MSTR) | ((bitOrder == SPI_LSBFIRST) ? _BV(DORD) : 0) |
-          (dataMode & _SPI_MODE_MASK) | ((clockDiv >> 1) & _SPI_CLOCK_MASK);
-        SPSR = clockDiv & _SPI_2XCLOCK_MASK;    
-  }
-
-  /** end spi transaction */
-  void spiEndTransaction() {
-
+          (dataMode << CPHA) | ((clockDiv >> 1) << SPR0);
+        SPSR = clockDiv | 0x01;          
   }
 
   
@@ -226,6 +217,12 @@ void spiBegin (void) {
     // nothing to do
     UNUSED(spiRate);
   }
+
+  /** Begin SPI transaction, set clock, bit order, data mode */
+  void spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
+    // nothing to do
+    UNUSED(spiBeginTransaction);
+  }    
 
   //------------------------------------------------------------------------------
   /** Soft SPI receive byte */
@@ -290,17 +287,6 @@ void spiBegin (void) {
     for (uint16_t i = 0; i < 512; i++)
       spiSend(buf[i]);
   }
-
-  /** begin spi transaction */
-  bool spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
-      // TODO
-  }
-
-  /** end spi transaction */
-  void spiEndTransaction() {
-      // TODO
-  }
-
   
 #endif  // SOFTWARE_SPI
 

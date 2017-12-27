@@ -137,6 +137,13 @@
     UNUSED(response);
     WRITE(SS_PIN, HIGH);
   }
+
+  /** Begin SPI transaction, set clock, bit order, data mode */
+  void spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
+    // nothing to do
+    UNUSED(spiBeginTransaction);
+  }    
+  
 #else
   // --------------------------------------------------------------------------
   // hardware SPI
@@ -331,6 +338,13 @@
     }
     spiSend(buf[511]);
   }
+
+  /** Begin SPI transaction, set clock, bit order, data mode */
+  void spiBeginTransaction(uint32_t spiClock, uint8_t bitOrder, uint8_t dataMode) {
+    // TODO: to be implemented
+    
+  }    
+  
 #endif // ENABLED(SOFTWARE_SPI)
 
 #endif // ARDUINO_ARCH_SAM

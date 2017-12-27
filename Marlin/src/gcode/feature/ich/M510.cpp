@@ -20,6 +20,7 @@
  *
  */
 
+#include "../../../Marlin.h"
 #include "../../gcode.h"
 #include "../../parser.h"
 #include "../../../feature/ich/interchangeableHotend.h"
@@ -31,35 +32,56 @@
  * M510: Set hotend label and nozzle info
  * L    label
  * N    nozzle
+ * R    test required nozzle vs installed one
  */
 void GcodeSuite::M510() {
-    char * args = parser.string_arg;
-    size_t len = strlen(args);
 
-    for (uint8_t i=0; i < len; i++) {
-        if (args[i] == 'L') {
-            // read label
-            i++;
-            uint8_t j = 0;
+    if (parser.seen('L')) {
+        const char * args = parser.string_arg;
+        size_t len = strlen(args);
 
-            while (i < len) {                                          
-                if (args[i] == ' ') {
-                    if (j < 12) {
-                        ich_label[j] = '\0';
+        SERIAL_ECHOLN(args);
+        for (uint8_t i=1; i < len; i++) {
+                uint8_t j = 0;
+    
+                while (i < len) {   
+                    SERIAL_ECHO(args[i]);                                       
+                    if (args[i] == ' ') {
+                        if (j < 12) {
+                            ich_label[j] = '\0';
+                            SERIAL_ECHO("\\0");                                       
+                        }
+                        break;
                     }
-                    break;
+                    if (j < 12) {
+                        ich_label[j] = args[i];
+                    } else if (j == 12) {
+                        ich_label[j] = '\0';
+                        SERIAL_ECHO("\\0");                                       
+                    }
+                    j++;    
+                    i++;
                 }
                 if (j < 12) {
-                    ich_label[j] = args[i];
-                } else if (j == 12) {
                     ich_label[j] = '\0';
+                    SERIAL_ECHO("\\0");                                       
                 }
-                j++;    
-                i++;
+        
+            }  
+            SERIAL_ECHOLN(ich_label)  ;
+    }
+
+    if (parser.seen('N')) {
+        ich_nozzle = (parser.floatval('N', ich_nozzle));
+    }
+
+    if (parser.seen('R')) {
+            if (parser.floatval('R', -1.0) != ich_nozzle) {
+                SERIAL_ERROR_START();
+                SERIAL_ERRORPGM(MSG_WRONG_NOZZLE);
+                SERIAL_ERRORLN((parser.floatval('R', -1.0)));
+                stop();
             }
-        } else if (args[i] == 'N') {
-            ich_nozzle = strtod(args + i + 1, NULL);
-        }
     }
 }
 
