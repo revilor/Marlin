@@ -25,24 +25,27 @@
  * feature/runout.h - Runout sensor support
  */
 
+#define FILAMENT_RUNOUT_SENSOR_DEBUG
+
 #include "../sd/cardreader.h"
 #include "../module/printcounter.h"
 #include "../module/stepper.h"
-#include "../gcode/queue.h"
-
-#include "../inc/MarlinConfig.h"
 
 #if ENABLED(EXTENSIBLE_UI)
   #include "../lcd/extensible_ui/ui_api.h"
 #endif
 
-//#define FILAMENT_RUNOUT_SENSOR_DEBUG
+#if ENABLED(MK3_FILAMENT_SENSOR)
+  #include "runout/PAT9125.h"
+#elif ENABLED(FILAMENT_MOTION_SENSOR)
+  #include "runout/EncoderSensor.h"
+#else
+  #include "runout/SwitchSensor.h"
+#endif
 
 class FilamentMonitorBase {
   public:
     static bool enabled;
-
-  protected:
     static bool filament_ran_out;
 };
 
@@ -103,165 +106,6 @@ class TFilamentMonitor : public FilamentMonitorBase {
       }
     }
 };
-
-/*************************** FILAMENT PRESENCE SENSORS ***************************/
-
-class FilamentSensorBase {
-  protected:
-    static void filament_present(const uint8_t extruder);
-
-  public:
-    static inline void setup() {
-      #if ENABLED(FIL_RUNOUT_PULLUP)
-        #define INIT_RUNOUT_PIN(P) SET_INPUT_PULLUP(P)
-      #elif ENABLED(FIL_RUNOUT_PULLDOWN)
-        #define INIT_RUNOUT_PIN(P) SET_INPUT_PULLDOWN(P)
-      #else
-        #define INIT_RUNOUT_PIN(P) SET_INPUT(P)
-      #endif
-
-      INIT_RUNOUT_PIN(FIL_RUNOUT_PIN);
-      #if NUM_RUNOUT_SENSORS > 1
-        INIT_RUNOUT_PIN(FIL_RUNOUT2_PIN);
-        #if NUM_RUNOUT_SENSORS > 2
-          INIT_RUNOUT_PIN(FIL_RUNOUT3_PIN);
-          #if NUM_RUNOUT_SENSORS > 3
-            INIT_RUNOUT_PIN(FIL_RUNOUT4_PIN);
-            #if NUM_RUNOUT_SENSORS > 4
-              INIT_RUNOUT_PIN(FIL_RUNOUT5_PIN);
-              #if NUM_RUNOUT_SENSORS > 5
-                INIT_RUNOUT_PIN(FIL_RUNOUT6_PIN);
-              #endif
-            #endif
-          #endif
-        #endif
-      #endif
-    }
-
-    // Return a bitmask of runout pin states
-    static inline uint8_t poll_runout_pins() {
-      return (
-        (READ(FIL_RUNOUT_PIN ) ? _BV(0) : 0)
-        #if NUM_RUNOUT_SENSORS > 1
-          | (READ(FIL_RUNOUT2_PIN) ? _BV(1) : 0)
-          #if NUM_RUNOUT_SENSORS > 2
-            | (READ(FIL_RUNOUT3_PIN) ? _BV(2) : 0)
-            #if NUM_RUNOUT_SENSORS > 3
-              | (READ(FIL_RUNOUT4_PIN) ? _BV(3) : 0)
-              #if NUM_RUNOUT_SENSORS > 4
-                | (READ(FIL_RUNOUT5_PIN) ? _BV(4) : 0)
-                #if NUM_RUNOUT_SENSORS > 5
-                  | (READ(FIL_RUNOUT6_PIN) ? _BV(5) : 0)
-                #endif
-              #endif
-            #endif
-          #endif
-        #endif
-      );
-    }
-
-    // Return a bitmask of runout flag states (1 bits always indicates runout)
-    static inline uint8_t poll_runout_states() {
-      return poll_runout_pins() ^ uint8_t(
-        #if DISABLED(FIL_RUNOUT_INVERTING)
-          _BV(NUM_RUNOUT_SENSORS) - 1
-        #else
-          0
-        #endif
-      );
-    }
-};
-
-#if ENABLED(FILAMENT_MOTION_SENSOR)
-
-  /**
-   * This sensor uses a magnetic encoder disc and a Hall effect
-   * sensor (or a slotted disc and optical sensor). The state
-   * will toggle between 0 and 1 on filament movement. It can detect
-   * filament runout and stripouts or jams.
-   */
-  class FilamentSensorEncoder : public FilamentSensorBase {
-    private:
-      static uint8_t motion_detected;
-
-      static inline void poll_motion_sensor() {
-        static uint8_t old_state;
-        const uint8_t new_state = poll_runout_pins(),
-                      change    = old_state ^ new_state;
-        old_state = new_state;
-
-        #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
-          if (change) {
-            SERIAL_ECHOPGM("Motion detected:");
-            for (uint8_t e = 0; e < NUM_RUNOUT_SENSORS; e++)
-              if (TEST(change, e)) { SERIAL_CHAR(' '); SERIAL_CHAR('0' + e); }
-            SERIAL_EOL();
-          }
-        #endif
-
-        motion_detected |= change;
-      }
-
-    public:
-      static inline void block_completed(const block_t* const b) {
-        // If the sensor wheel has moved since the last call to
-        // this method reset the runout counter for the extruder.
-        if (TEST(motion_detected, b->extruder))
-          filament_present(b->extruder);
-
-        // Clear motion triggers for next block
-        motion_detected = 0;
-      }
-
-      static inline void run() { poll_motion_sensor(); }
-  };
-
-#else
-
-  /**
-   * This is a simple endstop switch in the path of the filament.
-   * It can detect filament runout, but not stripouts or jams.
-   */
-  class FilamentSensorSwitch : public FilamentSensorBase {
-    private:
-      static inline bool poll_runout_state(const uint8_t extruder) {
-        const uint8_t runout_states = poll_runout_states();
-        #if NUM_RUNOUT_SENSORS == 1
-          UNUSED(extruder);
-          return runout_states;                     // A single sensor applying to all extruders
-        #else
-          #if ENABLED(DUAL_X_CARRIAGE)
-            if (dual_x_carriage_mode == DXC_DUPLICATION_MODE || dual_x_carriage_mode == DXC_SCALED_DUPLICATION_MODE)
-              return runout_states;                 // Any extruder
-            else
-          #elif ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
-            if (extruder_duplication_enabled)
-              return runout_states;                 // Any extruder
-            else
-          #endif
-              return TEST(runout_states, extruder); // Specific extruder
-        #endif
-      }
-
-    public:
-      static inline void block_completed(const block_t* const b) { UNUSED(b); }
-
-      static inline void run() {
-        const bool out = poll_runout_state(active_extruder);
-        if (!out) filament_present(active_extruder);
-        #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
-          static bool was_out = false;
-          if (out != was_out) {
-            was_out = out;
-            SERIAL_ECHOPGM("Filament ");
-            serialprintPGM(out ? PSTR("OUT\n") : PSTR("IN\n"));
-          }
-        #endif
-      }
-  };
-
-
-#endif // !FILAMENT_MOTION_SENSOR
 
 /********************************* RESPONSE TYPE *********************************/
 
@@ -337,13 +181,16 @@ class FilamentSensorBase {
 
 typedef TFilamentMonitor<
   #if FILAMENT_RUNOUT_DISTANCE_MM > 0
-    #if ENABLED(FILAMENT_MOTION_SENSOR)
-      RunoutResponseDelayed, FilamentSensorEncoder
-    #else
-      RunoutResponseDelayed, FilamentSensorSwitch
-    #endif
+    RunoutResponseDelayed,
   #else
-    RunoutResponseDebounced, FilamentSensorSwitch
+    RunoutResponseDebounced,
+  #endif
+  #if ENABLED(MK3_FILAMENT_SENSOR)
+    FilamentSensorPAT9125
+  #elif ENABLED(FILAMENT_MOTION_SENSOR)
+    FilamentSensorEncoder
+  #else
+    FilamentSensorSwitch
   #endif
 > FilamentMonitor;
 

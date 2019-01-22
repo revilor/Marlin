@@ -985,10 +985,13 @@
  */
 //#define FILAMENT_RUNOUT_SENSOR
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  #define NUM_RUNOUT_SENSORS   1     // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
-  #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
-  #define FIL_RUNOUT_PULLUP          // Use internal pullup for filament runout pins.
-  //#define FIL_RUNOUT_PULLDOWN      // Use internal pulldown for filament runout pins.
+  //#define MK3_FILAMENT_SENSOR
+  #if DISABLED(MK3_FILAMENT_SENSOR)
+    #define NUM_RUNOUT_SENSORS   1     // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
+    #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
+    #define FIL_RUNOUT_PULLUP          // Use internal pullup for filament runout pins.
+    //#define FIL_RUNOUT_PULLDOWN      // Use internal pulldown for filament runout pins.
+  #endif
   #define FILAMENT_RUNOUT_SCRIPT "M600"
 
   // After a runout is detected, continue printing this length of filament
