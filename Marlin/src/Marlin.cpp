@@ -722,10 +722,6 @@ void setup() {
     #endif
   #endif
 
-  #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    runout.setup();
-  #endif
-
   setup_killpin();
 
   setup_powerhold();
@@ -752,6 +748,12 @@ void setup() {
 
   SERIAL_ECHOLNPGM("start");
   SERIAL_ECHO_START();
+
+  #if ENABLED(FILAMENT_RUNOUT_SENSOR)
+    runout.setup();
+  #endif
+
+
 
   #if TMC_HAS_SPI
     #if DISABLED(TMC_USE_SW_SPI)
