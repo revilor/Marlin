@@ -100,7 +100,6 @@ class TFilamentMonitor : public FilamentMonitorBase {
           #if ENABLED(EXTENSIBLE_UI)
             ExtUI::onFilamentRunout();
           #endif
-          SERIAL_ECHOLN("Sensor: filament runout triggered");
           enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
           planner.synchronize();
         }
