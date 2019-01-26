@@ -47,6 +47,10 @@ void FilamentSensorBase::filament_present(const uint8_t extruder) {
 #if FILAMENT_RUNOUT_DISTANCE_MM > 0
   float RunoutResponseDelayed::runout_distance_mm = FILAMENT_RUNOUT_DISTANCE_MM;
   volatile float RunoutResponseDelayed::runout_mm_countdown[EXTRUDERS];
+#elif ENABLED(MK3_FILAMENT_SENSOR)
+  volatile bool RunoutResponsePAT9125::runout;
+  volatile int16_t FilamentSensorPAT9125::oldY;
+  volatile uint16_t FilamentSensorPAT9125::e_steps;
 #else
   int8_t RunoutResponseDebounced::runout_count; // = 0
 #endif

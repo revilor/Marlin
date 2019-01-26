@@ -100,6 +100,7 @@ class TFilamentMonitor : public FilamentMonitorBase {
           #if ENABLED(EXTENSIBLE_UI)
             ExtUI::onFilamentRunout();
           #endif
+          SERIAL_ECHOLN("Sensor: filament runout triggered");
           enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
           planner.synchronize();
         }
@@ -158,6 +159,22 @@ class TFilamentMonitor : public FilamentMonitorBase {
       }
   };
 
+#elif ENABLED(MK3_FILAMENT_SENSOR)
+  class RunoutResponsePAT9125 {
+    public:
+      static volatile bool runout;
+
+      static inline void reset() {
+        FilamentSensorPAT9125::e_steps = 0;
+        runout = false;   
+      }
+      static inline void run()                                    { }
+      static inline bool has_run_out()                            { return runout; }
+      static inline void block_completed(const block_t* const b)  {runout = b->steps[E_AXIS] > 0;  }
+      static inline void filament_present(const uint8_t extruder) { runout = false; UNUSED(extruder); }
+  };
+
+
 #else // !FILAMENT_RUNOUT_DISTANCE_MM
 
   // RunoutResponseDebounced triggers a runout event after a runout
@@ -182,6 +199,8 @@ class TFilamentMonitor : public FilamentMonitorBase {
 typedef TFilamentMonitor<
   #if FILAMENT_RUNOUT_DISTANCE_MM > 0
     RunoutResponseDelayed,
+  #elif ENABLED(MK3_FILAMENT_SENSOR)
+    RunoutResponsePAT9125,
   #else
     RunoutResponseDebounced,
   #endif

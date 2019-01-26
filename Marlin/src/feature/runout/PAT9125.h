@@ -25,6 +25,9 @@
 #include "../../inc/MarlinConfig.h"
 #include "../../module/stepper.h"
 
+
+#define PAT9125_TRIGGER_THRESHOLD   2
+
 // PAT9125 registers
 #define PAT9125_PID1            0x00
 #define PAT9125_PID2            0x01
@@ -131,6 +134,9 @@ class FilamentSensorBase {
         pat9125_PID1 = readRegister(PAT9125_PID1);
         pat9125_PID2 = readRegister(PAT9125_PID2);
         if (pat9125_PID1 != 0x31 || pat9125_PID2 != 0x91)
+          SERIAL_ECHOLN("PAT9125::init failed");
+          SERIAL_ECHOLN(pat9125_PID1);
+          SERIAL_ECHOLN(pat9125_PID2);
           return false;
       }
 
@@ -176,8 +182,8 @@ class FilamentSensorBase {
       #endif // PAT9125_NEW_INIT
       operative = true;
 
-      serialprintPGM(PSTR("PAT9125_RES_X=")); SERIAL_ECHOLN(readRegister(PAT9125_RES_X));
-      serialprintPGM(PSTR("PAT9125_RES_Y=")); SERIAL_ECHOLN(readRegister(PAT9125_RES_Y));
+      serialprintPGM(PSTR("PAT9125_RES_X=")); SERIAL_ECHO_F(readRegister(PAT9125_RES_X), DEC); SERIAL_ECHOLN("");
+      serialprintPGM(PSTR("PAT9125_RES_Y=")); SERIAL_ECHO_F(readRegister(PAT9125_RES_Y), DEC); SERIAL_ECHOLN("");
 
       return true;
     }
@@ -200,20 +206,54 @@ class FilamentSensorPAT9125 : public FilamentSensorBase {
     static bool motion_detected;
 
   public:
+
+    static volatile int16_t oldY;
+    static volatile uint16_t e_steps;
+
     static inline void block_completed(const block_t* const b) {
-      if (motion_detected) {
-        filament_present(b->extruder);
-        // Clear motion triggers for next block
-        motion_detected = false;
-      }
+
+      if (b->steps[E_AXIS] > 0) {
+        if (updateY()) {
+          int16_t y = getY();
+          motion_detected |= (y != oldY);
+          oldY = y;
+        } else {
+          // sensor not working
+          motion_detected = true;
+        }
+
+
+//        SERIAL_ECHO("block_completed ");
+//        SERIAL_ECHO_F(b->steps[E_AXIS], DEC);
+//        SERIAL_ECHOLN("");
+
+
+
+//              SERIAL_ECHO_F(e_steps * planner.steps_to_mm[E_AXIS_N(b->extruder)], DEC);
+//              SERIAL_ECHOLN("mm");
+
+
+          if (motion_detected) {
+//            SERIAL_ECHOLN("Motion!");
+            e_steps = 0;
+            filament_present(b->extruder);
+          } else {
+            if (e_steps * planner.steps_to_mm[E_AXIS_N(b->extruder)] < PAT9125_TRIGGER_THRESHOLD) {
+
+              filament_present(b->extruder);
+            } else {
+              SERIAL_ECHO_F(e_steps * planner.steps_to_mm[E_AXIS_N(b->extruder)], DEC);
+              SERIAL_ECHOLN("mm");
+            }
+
+            e_steps += b->steps[E_AXIS];
+          }
+      }       
+      
+      // Clear motion triggers for next block
+      motion_detected = false;
     }
 
-    static inline void run() {
-      static int16_t oldY;
-
-      updateY();
-      int16_t y = getY();
-      motion_detected |= (y != oldY);
-      oldY = y;
-    }
+    static void run() {
+    }  
 };
